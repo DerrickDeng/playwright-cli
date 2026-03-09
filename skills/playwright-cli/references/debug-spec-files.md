@@ -27,6 +27,50 @@ PWDEBUG=1 npx playwright test tests/my-feature.spec.ts
 PWDEBUG=console npx playwright test tests/my-feature.spec.ts
 ```
 
+## Connecting playwright-cli to a Running Spec (Automated)
+
+The most powerful workflow: run your spec in debug mode with a fixed CDP port, then connect `playwright-cli` directly to that browser. This lets you inspect live state, take snapshots, and run commands while the test is paused.
+
+**Step 1: Expose a fixed CDP port in `playwright.config.ts`**
+
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  use: {
+    launchOptions: {
+      args: ['--remote-debugging-port=9222'],
+    },
+  },
+});
+```
+
+**Step 2: Run your spec in debug mode** (test will pause at first action or `page.pause()`)
+
+```bash
+npx playwright test tests/my-feature.spec.ts --debug
+```
+
+**Step 3: In another terminal, connect playwright-cli to the same browser**
+
+```bash
+PLAYWRIGHT_MCP_CDP_ENDPOINT=http://localhost:9222 playwright-cli snapshot
+PLAYWRIGHT_MCP_CDP_ENDPOINT=http://localhost:9222 playwright-cli screenshot
+```
+
+Or set it once as an environment variable for the session:
+
+```bash
+export PLAYWRIGHT_MCP_CDP_ENDPOINT=http://localhost:9222
+
+playwright-cli snapshot        # inspect live page state
+playwright-cli screenshot      # capture the current frame
+playwright-cli eval "document.title"
+```
+
+playwright-cli reads `PLAYWRIGHT_MCP_CDP_ENDPOINT` and connects to the browser running your spec, sharing the same page. You can inspect the DOM, take screenshots, and run eval expressions while the test is paused at a breakpoint or `page.pause()`.
+
+---
+
 ## Debugging Workflow with playwright-cli
 
 Use `playwright-cli` to explore the page interactively first, then translate findings into your spec file:
